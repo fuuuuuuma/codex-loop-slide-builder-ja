@@ -1,0 +1,67 @@
+{
+  "_comment": "1スライド = 1ブロック。文章（中身）だけをここに持つ。見た目は slides.html 側。type で使うレイアウトを指定する。",
+  "meta": {
+    "theme": "◯◯",
+    "design": "design-systems から選んだテーマ名",
+    "core_message": "このデッキで一番伝えたいこと（1行）",
+    "audience": "誰に向けて"
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "type": "title",
+      "title": "◯◯ 徹底解説",
+      "subtitle": "はじめての人でも分かる完全ガイド",
+      "one_message": "このデッキは何の話か"
+    },
+    {
+      "id": "pain",
+      "type": "bullets",
+      "heading": "こんな悩み、ありませんか？",
+      "items": ["あるある①", "あるある②", "あるある③"],
+      "one_message": "見ている人の現実に刺す"
+    },
+    {
+      "id": "tldr",
+      "type": "tldr",
+      "heading": "結論",
+      "points": ["要点1", "要点2", "要点3"],
+      "one_message": "3行で要点"
+    },
+    {
+      "id": "what",
+      "type": "two_col",
+      "heading": "◯◯とは？",
+      "body": "ひとことで言うと「△△を任せられる相棒」。比喩で開く。",
+      "confidence": "✅",
+      "one_message": "定義を1つだけ"
+    },
+    {
+      "id": "flow",
+      "type": "flow",
+      "heading": "全体像",
+      "steps": [
+        {"t": "① 伝える", "d": "やりたいことを言葉で"},
+        {"t": "② 処理", "d": "△△を自動で"},
+        {"t": "③ 受け取る", "d": "成果物が返る"},
+        {"t": "④ 活かす", "d": "実務へ"}
+      ],
+      "one_message": "流れを4ステップで"
+    },
+    {
+      "id": "ask-1",
+      "type": "question",
+      "heading": "ここで質問",
+      "prompt": "あなたが毎週くり返している作業を、1つだけ挙げてみてください",
+      "one_message": "5〜8枚に1回の参加点"
+    },
+    {
+      "id": "cta",
+      "type": "cta",
+      "heading": "次の一歩",
+      "body": "全文と1枚資料は概要欄から",
+      "sources": ["公式 example.com", "出典は確度が取れたものだけ"],
+      "one_message": "行動と出典"
+    }
+  ]
+}
