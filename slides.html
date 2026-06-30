@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Codex × ループエンジニアリングで「スライド作成」を半自動化する</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#1C3461; --brand-deep:#16284A; --brand-soft:rgba(28,52,97,.08); --brand-line:rgba(28,52,97,.22);
+    --accent:#5BBCD4; --accent-deep:#2C7A93; --accent-soft:rgba(91,188,212,.16);
+    --bg:#F7FAFC; --paper:#FFFFFF; --ink:#1C3461; --ink-mid:#4A6080; --ink-sub:#8098B4; --line:rgba(28,52,97,.12);
+    --canvas:#D8E0EC;
+    --head:'Noto Sans JP';
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;font-family:'Noto Sans JP',-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;color:var(--ink);}
+  .slide{width:1280px;height:720px;background:var(--bg);position:relative;display:none;
+    flex-direction:column;align-items:center;justify-content:center;padding:62px 78px 72px;overflow:hidden;}
+  .slide.active{display:flex;}
+  .slide::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;
+    background:linear-gradient(90deg,var(--brand) 0%,var(--brand-deep) 52%,var(--accent) 100%);}
+  .coin{position:absolute;width:120px;height:120px;border-radius:50%;background:var(--accent);opacity:.13;top:-42px;left:-36px;}
+  .dots{position:absolute;display:grid;grid-template-columns:repeat(3,6px);gap:7px;opacity:.45;}
+  .dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  .dots.br{bottom:84px;right:58px;} .dots.tl{top:88px;left:52px;} .dots.brand span{background:var(--brand);}
+  .logo{position:absolute;top:18px;right:38px;z-index:10;display:flex;align-items:center;gap:10px;}
+  .logo .lt{font-family:var(--head);font-weight:900;font-size:14px;color:var(--brand-deep);line-height:1.15;}
+  .sno{position:absolute;bottom:20px;right:44px;font-size:12px;color:var(--ink-mid);}
+  .kick{position:absolute;bottom:20px;left:44px;font-size:12px;color:var(--ink-sub);}
+  .eyebrow{font-family:var(--head);font-size:13px;font-weight:900;color:var(--brand-deep);letter-spacing:2px;
+    margin-bottom:14px;display:inline-flex;align-items:center;gap:9px;}
+  .eyebrow::before,.eyebrow::after{content:'';width:20px;height:2px;background:var(--brand-line);border-radius:2px;}
+  h1{font-family:var(--head);font-size:50px;font-weight:900;color:var(--ink);line-height:1.22;text-align:center;margin-bottom:24px;}
+  h2{font-family:var(--head);font-size:38px;font-weight:900;color:var(--ink);line-height:1.25;}
+  .stitle{text-align:center;margin-bottom:26px;}
+  .secno{display:inline-block;font-family:var(--head);font-weight:900;color:var(--accent-deep);
+    background:var(--accent-soft);border-radius:8px;padding:2px 12px;font-size:22px;margin-right:10px;}
+  .lead{font-size:21px;color:var(--ink-mid);line-height:1.7;text-align:center;max-width:900px;}
+  .hl{color:var(--brand-deep);font-weight:900;} .hl-a{color:var(--accent-deep);font-weight:900;}
+  .sep{width:56px;height:4px;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:3px;margin:14px auto;}
+  .yen-chip{font-family:var(--head);font-weight:900;background:var(--accent);color:var(--ink);border-radius:999px;padding:4px 14px;font-size:13px;}
+  .head-row{display:flex;align-items:center;gap:14px;width:100%;margin-bottom:24px;}
+  .head-row h2{font-size:32px;text-align:left;}
+  .bullets{list-style:none;width:100%;max-width:880px;}
+  .bullets li{font-size:25px;font-weight:700;color:var(--ink);padding:14px 0 14px 44px;position:relative;border-bottom:1px solid var(--line);}
+  .bullets li::before{content:'';position:absolute;left:4px;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%;background:var(--accent);}
+  .checks{list-style:none;width:100%;max-width:900px;}
+  .checks li{font-size:21px;font-weight:700;color:var(--ink);padding:11px 0 11px 44px;position:relative;}
+  .checks li::before{content:'✔';position:absolute;left:6px;color:var(--brand);font-weight:900;}
+  .cols{display:grid;gap:18px;width:100%;} .c2{grid-template-columns:1fr 1fr;} .c3{grid-template-columns:repeat(3,1fr);} .c4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:24px 20px;box-shadow:0 3px 12px rgba(0,0,0,.05);}
+  .card.accent{border-color:var(--brand);border-width:2px;}
+  .card .pin{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--ink);font-family:var(--head);
+    font-weight:900;font-size:19px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 2px 0 var(--accent-deep);}
+  .card h3{font-family:var(--head);font-size:21px;font-weight:900;color:var(--ink);margin-bottom:8px;}
+  .card p{font-size:15px;color:var(--ink-mid);line-height:1.6;}
+  .card .mark{font-size:12px;font-weight:700;color:var(--brand-deep);margin-top:8px;}
+  .center{text-align:center;} .center .pin{margin:0 auto 12px;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;width:100%;max-width:1000px;}
+  .stat{background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:24px;text-align:center;}
+  .stat .n{font-family:var(--head);font-size:46px;font-weight:900;color:var(--brand-deep);line-height:1;}
+  .stat .n small{font-size:20px;} .stat .u{font-size:13px;color:var(--ink-sub);margin-top:4px;} .stat .l{font-size:15px;font-weight:700;color:var(--ink);margin-top:8px;}
+  .flow{display:flex;align-items:stretch;gap:0;width:100%;max-width:1080px;}
+  .flow .step{flex:1;background:var(--paper);border:1.5px solid var(--line);border-top:4px solid var(--brand);border-radius:12px;padding:18px 14px;text-align:center;}
+  .flow .step .t{font-family:var(--head);font-weight:900;font-size:17px;color:var(--ink);margin-bottom:6px;}
+  .flow .step .d{font-size:13px;color:var(--ink-mid);line-height:1.5;}
+  .flow .arrow{display:flex;align-items:center;color:var(--accent);font-size:26px;font-weight:900;padding:0 6px;}
+  .cycle{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;max-width:1040px;}
+  .cycle .node{width:150px;height:150px;border-radius:50%;background:var(--brand-soft);border:2px solid var(--brand);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px;}
+  .cycle .node b{font-family:var(--head);font-size:16px;color:var(--brand-deep);} .cycle .node span{font-size:12px;color:var(--ink-mid);}
+  .cycle .ar{color:var(--accent);font-size:28px;font-weight:900;}
+  .timeline{width:100%;max-width:1000px;}
+  .timeline .row{display:flex;gap:18px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line);}
+  .timeline .tbadge{flex-shrink:0;background:var(--brand);color:#fff;font-family:var(--head);font-weight:900;border-radius:8px;padding:6px 14px;font-size:14px;min-width:120px;text-align:center;}
+  .timeline .row b{font-family:var(--head);font-size:18px;color:var(--ink);} .timeline .row p{font-size:14px;color:var(--ink-mid);margin-top:3px;}
+  table.cmp{width:100%;max-width:1080px;border-collapse:separate;border-spacing:0;font-size:18px;background:var(--paper);border:1.5px solid var(--line);border-radius:14px;overflow:hidden;}
+  table.cmp th,table.cmp td{padding:13px 18px;text-align:left;border-bottom:1px solid var(--line);}
+  table.cmp thead th{background:var(--ink);color:#fff;font-family:var(--head);font-weight:700;font-size:16px;}
+  table.cmp thead th:first-child{background:var(--brand-deep);}
+  table.cmp tbody tr:last-child td{border-bottom:none;} table.cmp td:first-child{font-weight:700;}
+  table.cmp .yes{color:var(--brand-deep);font-weight:900;} table.cmp .no{color:var(--ink-sub);}
+  .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:1080px;}
+  .feat .f{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:16px;text-align:center;}
+  .feat .f .ic{width:38px;height:38px;border-radius:10px;background:var(--brand-soft);color:var(--brand-deep);font-family:var(--head);font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+  .feat .f b{font-size:14px;color:var(--ink);display:block;} .feat .f span{font-size:11.5px;color:var(--ink-mid);}
+  .map{list-style:none;width:100%;max-width:1020px;}
+  .map li{display:flex;align-items:center;gap:14px;font-size:18px;font-weight:600;color:var(--ink);padding:13px 16px;margin-bottom:10px;background:var(--paper);border:1.5px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;}
+  .map li .q{flex:1;} .map li .ar{color:var(--accent);font-weight:900;font-size:20px;} .map li .a{flex:1.3;color:var(--brand-deep);font-weight:700;}
+  .steps{list-style:none;width:100%;max-width:960px;}
+  .steps li{font-size:19px;font-weight:600;color:var(--ink);padding:13px 16px 13px 58px;position:relative;margin-bottom:10px;background:var(--paper);border:1.5px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;}
+  .steps li .n{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:30px;height:30px;background:var(--accent);color:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:900;font-size:15px;box-shadow:0 2px 0 var(--accent-deep);}
+  .prompt{font-family:ui-monospace,Menlo,monospace;font-size:16px;background:var(--ink);color:#ECECEA;border-radius:12px;padding:18px 22px;line-height:1.7;width:100%;max-width:1000px;text-align:left;}
+  .prompt .c{color:var(--accent);} .prompt .cm{color:#9FB4CC;} .prompt .y{color:#F2C879;}
+  .ba{display:flex;align-items:center;gap:20px;width:100%;max-width:1040px;}
+  .ba .panel{flex:1;background:var(--paper);border:1.5px solid var(--line);border-radius:14px;padding:22px;}
+  .ba .panel.after{border-color:var(--brand);border-width:2px;}
+  .ba .panel .tag{font-family:var(--head);font-weight:900;font-size:13px;border-radius:999px;padding:3px 12px;display:inline-block;margin-bottom:10px;}
+  .ba .panel.before .tag{background:var(--line);color:var(--ink-mid);} .ba .panel.after .tag{background:var(--brand);color:#fff;}
+  .ba .panel ul{list-style:none;} .ba .panel li{font-size:15px;color:var(--ink);padding:6px 0 6px 22px;position:relative;}
+  .ba .panel.before li::before{content:'×';position:absolute;left:0;color:var(--ink-sub);font-weight:900;}
+  .ba .panel.after li::before{content:'○';position:absolute;left:0;color:var(--brand);font-weight:900;}
+  .ba .mid{color:var(--accent);font-size:34px;font-weight:900;}
+  .faq{width:100%;max-width:1000px;} .faq .qa{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:10px;}
+  .faq .qa .q{font-family:var(--head);font-weight:900;font-size:17px;color:var(--brand-deep);}
+  .faq .qa .q::before{content:'Q. ';color:var(--accent-deep);} .faq .qa .a{font-size:15px;color:var(--ink-mid);margin-top:5px;} .faq .qa .a::before{content:'A. ';color:var(--ink);font-weight:700;}
+  .ghost{font-size:13px;color:var(--ink-mid);margin-top:10px;text-align:center;}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:2px solid var(--accent-deep);color:var(--ink);border-radius:999px;padding:12px 28px;font-family:var(--head);font-size:20px;font-weight:900;margin-top:6px;}
+  .badge{display:inline-block;background:var(--brand-deep);color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:4px 12px;}
+  .tldr{display:flex;gap:16px;width:100%;max-width:1040px;}
+  .tldr .t{flex:1;background:var(--paper);border:1.5px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:22px 20px;}
+  .tldr .t .k{font-family:var(--head);font-weight:900;color:var(--ink);font-size:14px;margin-bottom:7px;letter-spacing:.5px;}
+  .tldr .t p{font-size:17px;color:var(--ink);font-weight:700;line-height:1.5;}
+  .toc{columns:2;column-gap:48px;width:100%;max-width:980px;list-style:none;}
+  .toc li{font-size:18px;font-weight:700;color:var(--ink);padding:9px 0 9px 40px;position:relative;border-bottom:1px solid var(--line);break-inside:avoid;}
+  .toc li span{position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--brand-soft);color:var(--brand-deep);border-radius:7px;font-family:var(--head);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .nav{display:flex;align-items:center;gap:20px;margin-top:16px;}
+  .nav-btn{background:var(--paper);border:1.5px solid var(--line);color:var(--brand-deep);padding:9px 26px;border-radius:10px;cursor:pointer;font-family:var(--head);font-size:14px;font-weight:700;transition:.18s;}
+  .nav-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .counter{color:var(--ink-mid);font-size:14px;min-width:70px;text-align:center;}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="kawaru-logo" viewBox="0 0 406 93">
+    <rect x="6.67572e-06" y="13.4815" width="7.93029" height="74.5447" fill="currentColor"/>
+    <path d="M18.2397 52.7235L24.2772 47.5817L57.8911 88.0582L48.3318 88.0582L18.2397 52.7235Z" fill="#5BBCD4"/>
+    <path d="M34.8933 49.5514L40.9308 44.4096L77.2278 88.0366L67.4075 88.0262L34.8933 49.5514Z" fill="#5BBCD4"/>
+    <rect x="57.1908" y="2.92276" width="7.93029" height="83.5485" transform="rotate(42.3764 57.1908 2.92276)" fill="currentColor"/>
+    <rect x="59.4772" width="7.93029" height="22.2048" fill="currentColor"/>
+    <rect x="44.4096" y="7.9303" width="7.93029" height="22.9978" transform="rotate(-90 44.4096 7.9303)" fill="currentColor"/>
+    <path d="M110.882 61.3999L110.204 47.3281L135.413 20.7649H148.958L126.233 45.2211L119.46 52.4451L110.882 61.3999ZM99.9703 73.4399V20.7649H112.086V73.4399H99.9703ZM136.015 73.4399L117.278 50.4886L125.254 41.8349L150.237 73.4399H136.015ZM181.053 73.4399V65.5386L180.301 63.8079V49.6609C180.301 47.1525 179.523 45.196 177.968 43.7914C176.463 42.3867 174.13 41.6844 170.97 41.6844C168.813 41.6844 166.681 42.0355 164.574 42.7379C162.517 43.39 160.761 44.293 159.306 45.4469L155.092 37.2446C157.299 35.6895 159.958 34.4855 163.069 33.6326C166.179 32.7798 169.339 32.3534 172.55 32.3534C178.721 32.3534 183.512 33.8082 186.923 36.7179C190.334 39.6275 192.04 44.1676 192.04 50.3381V73.4399H181.053ZM168.712 74.0419C165.552 74.0419 162.843 73.5151 160.585 72.4616C158.328 71.358 156.597 69.878 155.393 68.0219C154.189 66.1657 153.587 64.0838 153.587 61.7761C153.587 59.3681 154.164 57.2611 155.318 55.4551C156.522 53.6491 158.403 52.2445 160.962 51.2411C163.52 50.1876 166.856 49.6609 170.97 49.6609H181.731V56.5086H172.249C169.49 56.5086 167.584 56.9601 166.53 57.8631C165.527 58.7661 165.025 59.8949 165.025 61.2494C165.025 62.7544 165.602 63.9584 166.756 64.8614C167.96 65.7142 169.59 66.1406 171.647 66.1406C173.604 66.1406 175.359 65.6891 176.915 64.7861C178.47 63.833 179.599 62.4534 180.301 60.6474L182.107 66.0654C181.254 68.674 179.699 70.6556 177.441 72.0101C175.184 73.3646 172.274 74.0419 168.712 74.0419ZM213.443 73.4399L198.844 32.9554H209.906L222.021 67.7961H216.754L229.396 32.9554H239.329L251.594 67.7961H246.327L258.818 32.9554H269.203L254.529 73.4399H243.166L232.406 43.5656H235.867L224.73 73.4399H213.443ZM300.427 73.4399V65.5386L299.675 63.8079V49.6609C299.675 47.1525 298.897 45.196 297.342 43.7914C295.837 42.3867 293.504 41.6844 290.344 41.6844C288.187 41.6844 286.055 42.0355 283.948 42.7379C281.891 43.39 280.135 44.293 278.68 45.4469L274.466 37.2446C276.674 35.6895 279.332 34.4855 282.443 33.6326C285.553 32.7798 288.714 32.3534 291.924 32.3534C298.095 32.3534 302.886 33.8082 306.297 36.7179C309.708 39.6275 311.414 44.1676 311.414 50.3381V73.4399H300.427ZM288.086 74.0419C284.926 74.0419 282.217 73.5151 279.959 72.4616C277.702 71.358 275.971 69.878 274.767 68.0219C273.563 66.1657 272.961 64.0838 272.961 61.7761C272.961 59.3681 273.538 57.2611 274.692 55.4551C275.896 53.6491 277.777 52.2445 280.336 51.2411C282.894 50.1876 286.23 49.6609 290.344 49.6609H301.105V56.5086H291.623C288.864 56.5086 286.958 56.9601 285.904 57.8631C284.901 58.7661 284.399 59.8949 284.399 61.2494C284.399 62.7544 284.976 63.9584 286.13 64.8614C287.334 65.7142 288.964 66.1406 291.021 66.1406C292.978 66.1406 294.734 65.6891 296.289 64.7861C297.844 63.833 298.973 62.4534 299.675 60.6474L301.481 66.0654C300.628 68.674 299.073 70.6556 296.815 72.0101C294.558 73.3646 291.648 74.0419 288.086 74.0419ZM324.296 73.4399V32.9554H335.508V44.3934L333.928 41.0824C335.132 38.2229 337.063 36.0657 339.722 34.6109C342.381 33.1059 345.617 32.3534 349.429 32.3534V43.1894C348.928 43.1392 348.476 43.1141 348.075 43.1141C347.674 43.064 347.247 43.0389 346.796 43.0389C343.585 43.0389 340.976 43.967 338.97 45.8231C337.013 47.6291 336.035 50.4635 336.035 54.3264V73.4399H324.296ZM376.043 74.0419C372.681 74.0419 369.671 73.3897 367.013 72.0854C364.404 70.781 362.372 68.7995 360.917 66.1406C359.462 63.4316 358.735 59.9952 358.735 55.8314V32.9554H370.474V54.1006C370.474 57.4618 371.176 59.945 372.581 61.5504C374.036 63.1055 376.068 63.8831 378.676 63.8831C380.482 63.8831 382.088 63.5069 383.492 62.7544C384.897 61.9517 386.001 60.7477 386.803 59.1424C387.606 57.4869 388.007 55.43 388.007 52.9719V32.9554H399.746V73.4399H388.609V62.3029L390.641 65.5386C389.287 68.348 387.28 70.48 384.621 71.9349C382.012 73.3395 379.153 74.0419 376.043 74.0419Z" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<!-- 01 表紙 -->
+<div class="slide active"><span class="coin"></span>
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="dots tl"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <p class="eyebrow">AI エージェントを使いこなす</p>
+  <h1 style="font-size:54px;">Codex × <span class="hl">ループエンジニアリング</span><br>で「スライド作成」を半自動化する</h1>
+  <div class="sep"></div>
+  <p class="lead" style="font-weight:700;">AIにゴールだけ渡して、生成 → 検証 → 改善 を自分で回させる。<br>作るほど速くなる “スライド量産” のやり方</p>
+  <span class="yen-chip" style="margin-top:20px;">2026年版・初心者基準</span>
+  <span class="kick">AIエージェント/Kawaru</span><span class="sno">1</span>
+</div>
+
+<!-- 02 受け取れる3つ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">この資料で受け取れるもの</p><h2 class="stitle">持ち帰れる “3点セット”</h2>
+  <div class="cols c3">
+    <div class="card center"><div class="pin">1</div><h3>ファイル構造テンプレ</h3><p>AIが迷わず作業できる「どこに何を書くか」の役割分担セット。</p></div>
+    <div class="card center accent"><div class="pin">2</div><h3>md → Skill 化して配る</h3><p>うまくいった手順を1ファイルにして、<span class="hl">/コマンド一発</span>で配れる型に。</p></div>
+    <div class="card center"><div class="pin">3</div><h3>テンプレ集（50選＋外部）</h3><p>DESIGN.md 50選 と、公開テンプレ集リンク。見た目の引き出し。</p></div>
+  </div>
+  <span class="kick">プレゼントの中身</span><span class="sno">2</span>
+</div>
+
+<!-- 03 目次 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">CONTENTS</p><h2 class="stitle">この資料の流れ</h2>
+  <ul class="toc">
+    <li><span>1</span>ループエンジニアリングとは</li>
+    <li><span>2</span>なぜスライドはループ最適なのか</li>
+    <li><span>3</span>全体像（Phase 0〜4）</li>
+    <li><span>4</span>柱① ファイル構造テンプレ</li>
+    <li><span>5</span>柱② md → Skill 化して配る</li>
+    <li><span>6</span>柱③ テンプレ集（50選＋外部）</li>
+    <li><span>7</span>使い方（悩み→こう頼む）</li>
+    <li><span>8</span>検証＝評価役 ／ まとめ</li>
+  </ul>
+  <span class="kick">目次</span><span class="sno">3</span>
+</div>
+
+<!-- 04 TL;DR -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">まず3行で</p><h2 class="stitle">結論</h2>
+  <div class="tldr">
+    <div class="t"><div class="k">POINT 1</div><p>ループ＝AIにゴールだけ渡して「生成→検証→改善」を自分で回させる作り方</p></div>
+    <div class="t"><div class="k">POINT 2</div><p>スライドは “出力で正解が確かめられる” からループ化に最適</p></div>
+    <div class="t"><div class="k">POINT 3</div><p>Codexにループを組めば、人は「監督」に専念。作るほど速くなる</p></div>
+  </div>
+  <span class="kick">TL;DR</span><span class="sno">4</span>
+</div>
+
+<!-- 05 悩み -->
+<div class="slide"><div class="dots br brand"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <h2 class="stitle">スライド作成、こんなに大変</h2>
+  <ul class="bullets">
+    <li>構成を考えて、デザインを整えて…1本に何時間もかかる</li>
+    <li>1枚が文字だらけ。何を言いたいか伝わらない</li>
+    <li>AIに丸投げすると、毎回バラバラ・崩れる・はみ出す</li>
+  </ul>
+  <p class="lead" style="margin-top:18px;">→ その往復、<span class="hl">Codexにループで回させる</span>と変わります</p>
+  <span class="kick">問題提起</span><span class="sno">5</span>
+</div>
+
+<!-- 06 ループとは -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">01</span><h2>ループエンジニアリングとは？</h2></div>
+  <div class="cols c2" style="align-items:center;">
+    <div><p style="font-size:22px;line-height:1.8;font-weight:700;">ひとことで言うと <span class="hl">「新人にゴールと合格ラインだけ伝えて、自分で直しながら仕上げてもらう」</span> をAIにやらせること。</p>
+      <p style="font-size:16px;color:var(--ink-mid);line-height:1.8;margin-top:16px;">ふつうは「1回頼んで、出てきたものを自分で直す」の繰り返し。ループは “やり直しの判断” までAIに渡します。</p></div>
+    <div><table class="cmp" style="font-size:16px;"><thead><tr><th>ふつうの使い方</th><th>ループ</th></tr></thead>
+      <tbody><tr><td>毎回こちらが指示</td><td class="yes">ゴールだけ渡す</td></tr>
+      <tr><td>直すのは自分</td><td class="yes">AIが自分で直す</td></tr>
+      <tr><td>1回きり</td><td class="yes">合格まで反復</td></tr></tbody></table></div>
+  </div>
+  <span class="kick">定義</span><span class="sno">6</span>
+</div>
+
+<!-- 07 ループの1周 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">01</span><h2>ループの「1周」</h2></div>
+  <div class="cycle">
+    <div class="node"><b>① 作る</b><span>1スライド生成</span></div><span class="ar">→</span>
+    <div class="node"><b>② チェック</b><span>はみ出し・重複</span></div><span class="ar">→</span>
+    <div class="node"><b>③ 直す</b><span>ダメな所を改善</span></div><span class="ar">↻</span>
+    <div class="node"><b>④ 合格判定</b><span>条件を満たすまで</span></div>
+  </div>
+  <p class="lead" style="margin-top:22px;">大事なのは <span class="hl-a">「作る役」と「採点する役」を分ける</span>こと（自分で採点すると甘くなる）</p>
+  <span class="kick">ループの1周</span><span class="sno">7</span>
+</div>
+
+<!-- 08 なぜスライドが最適 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">02</span><h2>なぜ “スライド” がループ最適なのか</h2></div>
+  <p class="lead" style="text-align:left;margin-bottom:18px;">ループが効くのは「ゴールを <span class="hl">出力で○×が付けられる</span>」タスク。スライドはまさにそれ。</p>
+  <ul class="checks">
+    <li>文字が <span class="hl">はみ出していない</span> か → ブラウザで高さを測れる</li>
+    <li>1スライドに言いたいことが <span class="hl">1つだけ</span> か → 見出し数で測れる</li>
+    <li>全体の <span class="hl">枚数・通し番号</span> が合っているか → 数えれば分かる</li>
+    <li><span class="hl">死にスライド</span>（重複・無くても困らない）が無いか → 検出できる</li>
+  </ul>
+  <span class="kick">適性</span><span class="sno">8</span>
+</div>
+
+<!-- 09 全体像フロー -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">03</span><h2>Codex × ループでできるまで</h2></div>
+  <div class="flow">
+    <div class="step"><div class="t">① 構成</div><div class="d">章立て・見出しを先に</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">② 1枚生成</div><div class="d">1スライド1メッセージ</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">③ 批評→改善</div><div class="d">3〜5周くり返す</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">④ 自動検証</div><div class="d">はみ出し0・枚数整合</div></div>
+  </div>
+  <p class="ghost">※ いきなり全部作らせない。「構成 → 1枚ずつ → 反復改善 → 自動検証」に分けるのが肝</p>
+  <span class="kick">全体像</span><span class="sno">9</span>
+</div>
+
+<!-- 10 Phase 0-4 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">03</span><h2>Phase 0〜4 で分ける</h2></div>
+  <div class="timeline">
+    <div class="row"><span class="tbadge">Phase 0 準備</span><div><b>コアメッセージを1行で決める</b><p>テーマ・ターゲット・伝えたい結論。ここは人（監督）の仕事</p></div></div>
+    <div class="row"><span class="tbadge">Phase 1 骨子</span><div><b>全体の構成（見出しだけ）を作る</b><p>ここを固めてから本文へ。後半が崩れない</p></div></div>
+    <div class="row"><span class="tbadge">Phase 2 生成</span><div><b>1スライドずつ本文を起こす</b><p>1スライド1メッセージを守る</p></div></div>
+    <div class="row"><span class="tbadge">Phase 3 改善</span><div><b>批評 → 改善を 3〜5周</b><p>死にスライド排除・ヘッダー統一（🔶X発信の手法を整理）</p></div></div>
+    <div class="row"><span class="tbadge">Phase 4 検証</span><div><b>はみ出し・枚数・体裁を自動チェック</b><p>ダメなら直す。ここが評価役</p></div></div>
+  </div>
+  <span class="kick">Phase</span><span class="sno">10</span>
+</div>
+
+<!-- 11 役割分担 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">03</span><h2>凝るなら “役割” を分ける</h2></div>
+  <div class="cols c2">
+    <div class="card"><div class="pin">見</div><h3>ビジュアル担当</h3><p>配色・余白・図解など “見た目” を整える役。デザイン特化のツールに任せると強い。</p></div>
+    <div class="card accent"><div class="pin">構</div><h3>構造担当（Codex）</h3><p>骨組み・文章・1スライド1メッセージなど “中身” を磨く役。Codexが得意。</p></div>
+  </div>
+  <p class="lead" style="margin-top:18px;">1人のAIに全部やらせると中途半端に。<span class="hl-a">見た目と中身を分担</span>すると崩れにくい（🔶 @uchita_success の上級テク）</p>
+  <span class="kick">役割分担</span><span class="sno">11</span>
+</div>
+
+<!-- 12 3本柱 overview -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">プレゼントの中身</p><h2 class="stitle"><span class="secno">柱</span>受け取れる3本柱</h2>
+  <div class="cols c3">
+    <div class="card center"><div class="pin">①</div><h3>ファイル構造</h3><p>AIに渡す土台（参照層）</p><p class="mark">✅ 実証済みの形</p></div>
+    <div class="card center accent"><div class="pin">②</div><h3>Skill 化</h3><p>再利用できる手順の型（手順層）</p><p class="mark">🔶 Claude/Codex共通の考え方</p></div>
+    <div class="card center"><div class="pin">③</div><h3>テンプレ集</h3><p>見た目の引き出し（参考層）</p><p class="mark">✅ 実在リンク</p></div>
+  </div>
+  <span class="kick">3本柱</span><span class="sno">12</span>
+</div>
+
+<!-- 13 柱① ファイルツリー -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">①</span><h2>柱① ファイル構造テンプレート</h2></div>
+  <div class="prompt" style="font-size:17px;">
+<span class="cm"># フォルダ1つに、この6ファイルを置くだけ</span><br>
+slide-project/<br>
+├─ <span class="c">AGENTS.md</span>   <span class="cm"># AIへの“社内ルール”（口調・禁止事項・守る型）</span><br>
+├─ <span class="c">DESIGN.md</span>   <span class="cm"># 配色・フォント・スライドの型（デザインの正典）</span><br>
+├─ <span class="c">outline.md</span>  <span class="cm"># 構成（章立て・各スライドの見出し）</span><br>
+├─ <span class="c">script.json</span> <span class="cm"># 1枚ずつの中身（文章と見た目を分ける）</span><br>
+├─ <span class="c">slides.html</span> <span class="cm"># 完成スライド本体（単一HTML）</span><br>
+└─ <span class="c">check.mjs</span>   <span class="cm"># 自動チェック（はみ出し検出）＝評価役</span>
+  </div>
+  <span class="kick">柱① 構造</span><span class="sno">13</span>
+</div>
+
+<!-- 14 柱① 役割表 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">①</span><h2>各ファイルの役割</h2></div>
+  <table class="cmp">
+    <thead><tr><th>ファイル</th><th>役割（ひとことで）</th></tr></thead>
+    <tbody>
+      <tr><td>AGENTS.md</td><td>AIが毎回守る社内ルール（禁止ワード・1スライド1メッセージ等）</td></tr>
+      <tr><td>DESIGN.md</td><td>色・フォント・型の正典。柱③「50選」とつながる</td></tr>
+      <tr><td>outline.md</td><td>先に骨組みだけ作る場所。後半が崩れない</td></tr>
+      <tr><td>script.json</td><td><span class="yes">文章（中身）と見た目（HTML）を分ける</span>。中身だけ直せる</td></tr>
+      <tr><td>check.mjs</td><td><span class="yes">ループの心臓</span>。はみ出しを自動で見つける道具</td></tr>
+    </tbody>
+  </table>
+  <span class="kick">柱① 役割</span><span class="sno">14</span>
+</div>
+
+<!-- 15 柱② md→Skill フロー -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">②</span><h2>柱② md → Skill にして配る</h2></div>
+  <div class="flow">
+    <div class="step"><div class="t">① 手順メモ</div><div class="d">作り方を md に書く</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">② Skill 化</div><div class="d">「SKILL.md にして」</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">③ 置く</div><div class="d">フォルダ／GitHub</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">④ 配る</div><div class="d">/コマンド一発で再利用</div></div>
+  </div>
+  <p class="lead" style="margin-top:20px;">一度うまくいった作り方を <span class="hl">“あなた専用の手順”</span> にして、チームやお客さんに渡せる</p>
+  <span class="kick">柱② フロー</span><span class="sno">15</span>
+</div>
+
+<!-- 16 柱② SKILL.md 中身 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">②</span><h2>SKILL.md の中身（最小）</h2></div>
+  <div class="prompt">
+<span class="cm">---</span><br>
+<span class="y">name</span>: make-slides<br>
+<span class="y">description</span>: 構成→1枚ずつ→批評改善→自動検証で、はみ出し0のスライドを作る。<br>
+&nbsp;&nbsp;「スライド作って」「資料にして」で使う <span class="cm"># ←いつ使うかを具体的に</span><br>
+<span class="cm">---</span><br>
+<span class="cm">## 手順</span><br>
+1. outline.md に章立て（1スライド1メッセージ）<br>
+2. script.json に本文（中身と見た目を分ける）<br>
+3. slides.html を生成 → 4. check.mjs ではみ出し検出→直す（3〜5周）<br>
+5. 枚数・通し番号を数えて整合
+  </div>
+  <span class="kick">柱② 中身</span><span class="sno">16</span>
+</div>
+
+<!-- 17 柱③ DESIGN.md 50選 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">③</span><h2>柱③ DESIGN.md「50選」</h2></div>
+  <p class="lead" style="text-align:left;margin-bottom:16px;">最初から50個そろえなくてOK。1本作るたびに “勝ちパターン” を1行ずつ <span class="hl">貯めて育てる資産</span>。</p>
+  <ul class="checks">
+    <li><b>配色</b>：ネイビー×ブルー／コーラル×クリーム／エメラルド×ゴールド…</li>
+    <li><b>型</b>：表紙／結論3行／3本柱カード／比較表／before-after／フロー／FAQ…</li>
+    <li><b>守るルール</b>：濃い差し色は文字に使わない／表見出しは濃地に白字／1スライド1メッセージ</li>
+  </ul>
+  <span class="kick">柱③ 50選</span><span class="sno">17</span>
+</div>
+
+<!-- 18 柱③ 外部テンプレ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">③</span><h2>外部の公開テンプレ集（参考）</h2></div>
+  <div class="feat">
+    <div class="f"><div class="ic">L</div><b>slide lib / c-slide</b><span>BtoB資料ポータル（Cone）</span></div>
+    <div class="f"><div class="ic">C</div><b>SlidesCarnival</b><span>無料テーマ大規模</span></div>
+    <div class="f"><div class="ic">G</div><b>Slidesgo</b><span>業務〜教育 幅広い</span></div>
+    <div class="f"><div class="ic">A</div><b>Slidesacademy</b><span>無料テーマ集</span></div>
+  </div>
+  <p class="ghost">✅ いずれも実在。AIに「この雰囲気・構成で」と渡す参考に。⚠️ 利用前にライセンス（商用可否・クレジット・再配布）を必ず確認</p>
+  <span class="kick">柱③ 外部</span><span class="sno">18</span>
+</div>
+
+<!-- 19 before/after -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">04</span><h2>手作業 → ループ</h2></div>
+  <div class="ba">
+    <div class="panel before"><span class="tag">手作業</span><ul><li>毎回こちらが指示し直す</li><li>はみ出し・崩れを全部目視</li><li>本数が増えると回らない</li></ul></div>
+    <div class="mid">→</div>
+    <div class="panel after"><span class="tag">ループ</span><ul><li>ゴールと合格条件だけ渡す</li><li>はみ出しは自動で検出・修正</li><li>Skillで型化して量産・配布</li></ul></div>
+  </div>
+  <span class="kick">ビフォーアフター</span><span class="sno">19</span>
+</div>
+
+<!-- 20 比較表 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">04</span><h2>3つのやり方を比べる</h2></div>
+  <table class="cmp" style="font-size:16px;">
+    <thead><tr><th>観点</th><th>1枚ずつ手作り</th><th>AIに丸投げ1発</th><th>Codex×ループ</th></tr></thead>
+    <tbody>
+      <tr><td>速さ</td><td class="no">遅い</td><td>速いが当たり外れ</td><td class="yes">速い＋安定</td></tr>
+      <tr><td>体裁チェック</td><td>自分で全部</td><td class="no">崩れに気づかない</td><td class="yes">自動で検出・修正</td></tr>
+      <tr><td>作り直し判断</td><td>自分</td><td>自分（毎回指示）</td><td class="yes">AIが自分で回す</td></tr>
+      <tr><td>量産・再現性</td><td class="no">低い</td><td>中</td><td class="yes">高い（Skill化）</td></tr>
+    </tbody>
+  </table>
+  <p class="ghost">※ 1〜2枚の単発なら手作り／丸投げで十分。ループは「量産・横展開・チーム統一」で効く</p>
+  <span class="kick">比較</span><span class="sno">20</span>
+</div>
+
+<!-- 21 1スライド1メッセージ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">04</span><h2>1スライド1メッセージ ＆ 死にスライド排除</h2></div>
+  <ul class="checks">
+    <li>1枚に言いたいことは <span class="hl">1つだけ</span>。詰め込むと全部ぼやける</li>
+    <li>同じ主張の重複は <span class="hl-a">“説明が弱い方”</span> を消す（専門的すぎる版を消し、分かりやすい版を残す）</li>
+    <li>ヘッダー（見出しの形）を統一すると、デッキ全体が締まる</li>
+    <li>「無くても困らない」スライドは思い切って削る＝死にスライド排除</li>
+  </ul>
+  <span class="kick">磨き方</span><span class="sno">21</span>
+</div>
+
+<!-- 22 検証＝評価役 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">05</span><h2>検証＝“評価役”の作り方（心臓）</h2></div>
+  <div class="cols c3">
+    <div class="card center"><div class="pin">A</div><h3>はみ出し検出</h3><p>ブラウザで各要素の高さを測り、枠超えを自動で見つける。</p></div>
+    <div class="card center"><div class="pin">B</div><h3>枚数の整合</h3><p>番号は手で書かず、<span class="hl">スライド数を数えて流し込む</span>。常に一致。</p></div>
+    <div class="card center"><div class="pin">C</div><h3>重複の検出</h3><p>同じ主張の二重掲載を見つけ、弱い方を消す。</p></div>
+  </div>
+  <p class="lead" style="margin-top:18px;"><span class="hl-a">作る役と採点役を分け</span>、両方OKだけ合格にする＝精度の決め手</p>
+  <span class="kick">検証</span><span class="sno">22</span>
+</div>
+
+<!-- 23 使い方フロー -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">むずかしくない</p><h2 class="stitle"><span class="secno">06</span>使い方の全体フロー</h2>
+  <div class="flow">
+    <div class="step"><div class="t">① 土台を置く</div><div class="d">AGENTS/DESIGN/outline</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">② 章立て</div><div class="d">「見出しだけ作って」</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">③ ループ</div><div class="d">批評→改善→検証</div></div><div class="arrow">→</div>
+    <div class="step"><div class="t">④ Skill化</div><div class="d">次回から/コマンド</div></div>
+  </div>
+  <span class="kick">使い方フロー</span><span class="sno">23</span>
+</div>
+
+<!-- 24 悩み→こう頼む -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">06</span><h2>こんな悩み → こう頼むだけ</h2></div>
+  <ul class="map">
+    <li><span class="q">「構成から考えるのがしんどい」</span><span class="ar">→</span><span class="a">「章立て（見出しだけ）を10枚分作って」</span></li>
+    <li><span class="q">「1枚が文字だらけ」</span><span class="ar">→</span><span class="a">「各スライドを “言いたいこと1つ” に削って」</span></li>
+    <li><span class="q">「はみ出す・崩れる」</span><span class="ar">→</span><span class="a">「はみ出しを自動チェックして直して」</span></li>
+    <li><span class="q">「毎回同じ説明が面倒」</span><span class="ar">→</span><span class="a">「今の手順を SKILL.md にまとめて」</span></li>
+  </ul>
+  <span class="kick">悩み→依頼</span><span class="sno">24</span>
+</div>
+
+<!-- 25 すぐ試せるプロンプト -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">06</span><h2>すぐ試せるプロンプト</h2></div>
+  <div class="prompt">
+<span class="cm"># そのままコピペで試せる</span><br>
+あなたはスライド作成の担当です。次のルールで作って：<br>
+・1スライド＝言いたいこと1つだけ（1スライド1メッセージ）<br>
+・文字のはみ出しは禁止。最後にブラウザで高さを測って確認<br>
+・まず <span class="c">outline.md</span> に章立て → <span class="c">script.json</span> に本文 → <span class="c">slides.html</span> 生成 の順<br>
+・出典の取れない数字・価格は書かない<br>
+テーマは「◯◯」。まず章立て（見出しだけ10枚分）を出して。
+  </div>
+  <span class="kick">プロンプト</span><span class="sno">25</span>
+</div>
+
+<!-- 26 Phase別プロンプト -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">06</span><h2>ループを“組む”言い方</h2></div>
+  <div class="prompt" style="font-size:15px;">
+<span class="cm"># Phase 1 骨子</span><br>
+「◯◯のスライドの章立てを作って。各スライドは見出し1行＋一言メモだけ」<br><br>
+<span class="cm"># Phase 3 改善ループ（ここが“ループ”）</span><br>
+「各スライドを self-review して。死にスライド（重複・不要）を統合/削除。<br>
+&nbsp;合格するまで批評→改善を最大5周くり返して」<br><br>
+<span class="cm"># Phase 4 検証</span><br>
+「check.mjs を実行して、はみ出しが出たスライドを直して。<span class="c">0になるまで</span>くり返して」
+  </div>
+  <span class="kick">Phase別</span><span class="sno">26</span>
+</div>
+
+<!-- 27 実践ステップ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">06</span><h2>実践ステップ</h2></div>
+  <ul class="steps">
+    <li><span class="n">1</span>フォルダを作り、AGENTS.md / DESIGN.md / outline.md を置く（柱①）</li>
+    <li><span class="n">2</span>「このルールで章立てから作って」（Phase 1）</li>
+    <li><span class="n">3</span>1枚ずつ本文生成 →「批評→改善5周」「はみ出し0まで」（Phase 2〜4）</li>
+    <li><span class="n">4</span>うまくいった手順を SKILL.md にして /コマンド一発に（柱②）</li>
+  </ul>
+  <span class="kick">実践ステップ</span><span class="sno">27</span>
+</div>
+
+<!-- 28 配り方 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">06</span><h2>“配れる” のがループの強み</h2></div>
+  <div class="cols c3">
+    <div class="card center"><div class="pin">型</div><h3>型にする</h3><p>うまくいった手順を SKILL.md＋テンプレ一式に。</p></div>
+    <div class="card center"><div class="pin">公</div><h3>公開する</h3><p>GitHub（public）に置けば、リンクを渡すだけ。</p></div>
+    <div class="card center"><div class="pin">使</div><h3>一発で使う</h3><p>受け取った人も /コマンドで同じ品質を再現。</p></div>
+  </div>
+  <p class="lead" style="margin-top:18px;">1本作って終わりではなく、<span class="hl">作り方そのものを資産にして横展開</span></p>
+  <span class="kick">配布</span><span class="sno">28</span>
+</div>
+
+<!-- 29 ユースケース① -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">07</span><h2>ユースケース① <span class="hl">セミナースライド</span></h2></div>
+  <div class="cols c2" style="align-items:center;">
+    <div class="stats" style="grid-template-columns:1fr;max-width:320px;">
+      <div class="stat"><div class="n">140<small>枚</small></div><div class="u">1セッションで往復・仕上げ（実例）</div><div class="l">✅ 制作ログ実証</div></div>
+    </div>
+    <div><p style="font-size:18px;line-height:1.8;">実際に「フィードバック→修正→検証→公開」を往復し、<span class="hl">全140枚</span>のセミナーデッキを仕上げた実例。参加を促す問いを 5〜8枚に1回 入れてリズムを作った。</p></div>
+  </div>
+  <span class="kick">ユースケース①</span><span class="sno">29</span>
+</div>
+
+<!-- 30 ユースケース② -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">07</span><h2>ユースケース② <span class="hl">営業・配布資料</span></h2></div>
+  <ul class="checks">
+    <li>会社紹介・営業資料を、同じ型で何本も量産（外部テンプレ集も参考に）</li>
+    <li>DESIGN.md でブランドの色・型を固定 → 担当が変わっても品質が揃う</li>
+    <li>1枚資料（縦スクロール）にも展開して、配布・Web掲載まで</li>
+  </ul>
+  <span class="kick">ユースケース②</span><span class="sno">30</span>
+</div>
+
+<!-- 31 ユースケース③ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">07</span><h2>ユースケース③ <span class="hl">動画の解説スライド</span></h2></div>
+  <div class="cols c3">
+    <div class="card center"><div class="pin">✎</div><h3>台本→構成</h3><p>話す内容を章立てに変換</p></div>
+    <div class="card center"><div class="pin">▷</div><h3>1枚ずつ生成</h3><p>1スライド1メッセージで</p></div>
+    <div class="card center"><div class="pin">↑</div><h3>検証→公開</h3><p>はみ出し0で撮影に使う</p></div>
+  </div>
+  <p class="lead" style="margin-top:18px;">撮影用デッキを<span class="hl">毎本ループで量産</span>。この資料自体もその型で作られています</p>
+  <span class="kick">ユースケース③</span><span class="sno">31</span>
+</div>
+
+<!-- 32 活用サイクル -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">07</span><h2>型を貯めて “資産” にする</h2></div>
+  <div class="cycle">
+    <div class="node"><b>① 作る</b><span>ループで1本</span></div><span class="ar">→</span>
+    <div class="node"><b>② 型化</b><span>DESIGN/SKILL に追記</span></div><span class="ar">→</span>
+    <div class="node"><b>③ 配る</b><span>公開・横展開</span></div><span class="ar">↻</span>
+    <div class="node"><b>④ 速くなる</b><span>次回はもっと楽</span></div>
+  </div>
+  <p class="ghost">※ 作るほど引き出し（50選）が増え、次の1本が速くなる</p>
+  <span class="kick">活用の流れ</span><span class="sno">32</span>
+</div>
+
+<!-- 33 もう一歩 -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">07</span><h2>もう一歩進んだ使い方</h2></div>
+  <ul class="checks">
+    <li><b>AGENTS.md</b> で社内ルールを効かせる（禁止ワード・口調・数値は出典必須）</li>
+    <li><b>サブエージェント</b>（.codex/agents/）で「構成担当／文章担当／検証担当」を分ける</li>
+    <li>ビジュアルはデザイン特化ツール、構造はCodex、と<b>担当を分ける</b></li>
+  </ul>
+  <p class="lead" style="margin-top:14px;">🔶 Codexの細かい仕様（既定値・配置）は時点で変わる。最新は公式ドキュメントで確認</p>
+  <span class="kick">もう一歩</span><span class="sno">33</span>
+</div>
+
+<!-- 34 FAQ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <div class="head-row"><span class="secno">08</span><h2>よくある質問</h2></div>
+  <div class="faq">
+    <div class="qa"><div class="q">プログラミングができなくても使える？</div><div class="a">章立て・本文・体裁チェックは日本語で頼むだけ。まず「章立て」「1枚1メッセージに削る」「はみ出し直す」の3つでOK。</div></div>
+    <div class="qa"><div class="q">ループって止まらないのでは？</div><div class="a">「はみ出し0・全◯枚」など合格条件を満たしたら止まる、と決めておく。条件を“確かめられる形”にするのがコツ。</div></div>
+    <div class="qa"><div class="q">本当に時短になる？</div><div class="a">1〜2枚なら変わらない。効くのは量産・横展開・チーム統一のとき。効果は使い方しだい（断定はしない）。</div></div>
+  </div>
+  <span class="kick">FAQ</span><span class="sno">34</span>
+</div>
+
+<!-- 35 まとめ -->
+<div class="slide">
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <p class="eyebrow">まとめ</p><h2 class="stitle">スライドは<span class="hl">「ループで回す」</span>が正解</h2>
+  <ul class="checks" style="max-width:820px;">
+    <li>ゴールと合格条件（はみ出し0・1スライド1メッセージ）を渡す</li>
+    <li>構成→1枚ずつ→批評改善→検証 を Codex に回させる</li>
+    <li>うまくいった手順は Skill 化して配り、作るほど速くする</li>
+  </ul>
+  <span class="kick">まとめ</span><span class="sno">35</span>
+</div>
+
+<!-- 36 CTA + 出典 -->
+<div class="slide"><span class="coin" style="top:auto;left:auto;bottom:-42px;right:-36px;"></span>
+  <div class="logo"><svg width="118" height="27" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+  <h2 class="stitle" style="margin-bottom:18px;">もっと学ぶ</h2>
+  <p class="lead">全文と1枚資料は概要欄から。3点セット（テンプレ／Skill化／50選）も一緒にどうぞ</p>
+  <span class="pill">チャンネル登録でループを学ぶ</span>
+  <p class="ghost" style="margin-top:14px;max-width:920px;">出典：Addy Osmani『Loop Engineering』／ OpenAI Codex Docs ／ slide lib(cone-c-slide.com) ／ @uchita_success(X) ／ 制作ログ（全140枚）。本資料は非公式まとめ</p>
+  <span class="kick">CTA・出典</span><span class="sno">36</span>
+</div>
+
+<div class="nav">
+  <button class="nav-btn" onclick="go(-1)">← 前へ</button>
+  <span class="counter" id="ctr">1 / 36</span>
+  <button class="nav-btn" onclick="go(1)">次へ →</button>
+</div>
+<script>
+  let cur=0;const slides=document.querySelectorAll('.slide');const total=slides.length;
+  function showSlide(n){slides.forEach(s=>s.classList.remove('active'));cur=((n%total)+total)%total;
+    slides[cur].classList.add('active');document.getElementById('ctr').textContent=(cur+1)+' / '+total;}
+  function go(d){showSlide(cur+d);}
+  document.addEventListener('keydown',e=>{if(['ArrowRight','ArrowDown',' '].includes(e.key)){e.preventDefault();go(1);}
+    if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();go(-1);}});
+  showSlide(0);
+</script>
+</body>
+</html>

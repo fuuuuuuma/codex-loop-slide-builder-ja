@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codex × ループエンジニアリングで「スライド作成」を半自動化する — 1枚ガイド</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#1C3461; --brand-deep:#16284A; --brand-soft:rgba(28,52,97,.08); --brand-line:rgba(28,52,97,.22);
+    --accent:#5BBCD4; --accent-deep:#2C7A93; --accent-soft:rgba(91,188,212,.16);
+    --bg:#F7FAFC; --paper:#FFFFFF; --ink:#1C3461; --ink-mid:#4A6080; --ink-sub:#8098B4; --line:rgba(28,52,97,.12);
+    --head:'Noto Sans JP';
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Noto Sans JP',-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;line-height:1.7;}
+  .doc{max-width:880px;margin:0 auto;background:var(--paper);box-shadow:0 0 60px rgba(0,0,0,.10);overflow:hidden;}
+  .hero{position:relative;background:linear-gradient(160deg,var(--brand-soft) 0%,var(--bg) 70%);padding:50px 52px 44px;border-bottom:3px solid var(--brand-line);overflow:hidden;}
+  .hero .coin{position:absolute;width:160px;height:160px;border-radius:50%;background:var(--accent);opacity:.15;top:-52px;right:-36px;}
+  .hero .chan{display:inline-flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .hero .chan b{font-family:var(--head);font-weight:900;color:var(--brand-deep);font-size:17px;}
+  .hero .chan b small{display:block;font-size:11px;color:var(--ink-mid);font-weight:500;letter-spacing:.4px;}
+  .eyebrow{font-family:var(--head);font-weight:900;color:var(--brand-deep);letter-spacing:2px;font-size:13px;display:inline-flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .eyebrow::before{content:'▸';background:var(--accent);color:var(--ink);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;}
+  h1{font-family:var(--head);font-weight:900;font-size:38px;line-height:1.28;color:var(--ink);}
+  h1 .hl{color:var(--brand-deep);}
+  .hero p.sub{font-size:18px;color:var(--ink-mid);font-weight:700;margin-top:14px;max-width:680px;}
+  .meta{margin-top:20px;display:flex;gap:9px;flex-wrap:wrap;}
+  .meta span{background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:6px 15px;font-size:13px;font-weight:700;color:var(--ink-mid);}
+  .meta span.k{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);}
+  .tocbar{background:var(--brand-soft);border-bottom:1px solid var(--line);padding:16px 52px;display:flex;flex-wrap:wrap;gap:8px;}
+  .tocbar a{font-size:13px;font-weight:700;color:var(--brand-deep);text-decoration:none;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 13px;}
+  .tocbar a:hover{border-color:var(--brand);}
+  section{padding:40px 52px;border-bottom:1px solid var(--line);}
+  .sec-h{display:flex;align-items:center;gap:13px;margin-bottom:22px;}
+  .sec-h .no{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--ink);font-family:var(--head);font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--accent-deep);}
+  .sec-h h2{font-family:var(--head);font-weight:900;font-size:25px;color:var(--ink);}
+  p.body{font-size:16px;color:var(--ink);margin-bottom:12px;}
+  p.note{font-size:13px;color:var(--ink-mid);} .hl{color:var(--brand-deep);font-weight:700;} .hl-a{color:var(--accent-deep);font-weight:700;}
+  .lead{font-size:17px;color:var(--ink-mid);font-weight:700;}
+  .tldr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;}
+  .tldr .t{background:var(--bg);border:1.5px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px 15px;}
+  .tldr .t .k{font-family:var(--head);font-weight:900;color:var(--ink);font-size:13px;margin-bottom:6px;}
+  .tldr .t p{font-size:14px;font-weight:700;color:var(--ink);line-height:1.5;}
+  .bullets{list-style:none;} .bullets li{font-size:16px;font-weight:700;color:var(--ink);padding:10px 0 10px 30px;position:relative;border-bottom:1px solid var(--line);}
+  .bullets li::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:11px;height:11px;border-radius:50%;background:var(--accent);}
+  .checks{list-style:none;} .checks li{font-size:15px;color:var(--ink);padding:7px 0 7px 26px;position:relative;}
+  .checks li::before{content:'✔';position:absolute;left:2px;color:var(--brand);font-weight:900;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;}
+  .flow{display:flex;align-items:stretch;gap:0;}
+  .flow .step{flex:1;background:var(--bg);border:1.5px solid var(--line);border-top:4px solid var(--brand);border-radius:10px;padding:13px 9px;text-align:center;}
+  .flow .step .t{font-family:var(--head);font-weight:900;font-size:14px;color:var(--ink);margin-bottom:4px;}
+  .flow .step .d{font-size:11px;color:var(--ink-mid);line-height:1.4;}
+  .flow .arrow{display:flex;align-items:center;color:var(--accent);font-size:20px;font-weight:900;padding:0 4px;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+  .stat{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:18px;text-align:center;}
+  .stat .n{font-family:var(--head);font-size:36px;font-weight:900;color:var(--brand-deep);line-height:1;} .stat .n small{font-size:16px;}
+  .stat .u{font-size:12px;color:var(--ink-sub);margin-top:4px;} .stat .l{font-size:13px;font-weight:700;color:var(--ink);margin-top:6px;}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+  .cards .c{background:var(--bg);border:1.5px solid var(--line);border-radius:13px;padding:18px 15px;text-align:center;}
+  .cards .c.accent{border-color:var(--brand);border-width:2px;background:var(--paper);}
+  .cards .c .pin{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--ink);font-family:var(--head);font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 2px 0 var(--accent-deep);}
+  .cards .c h3{font-family:var(--head);font-weight:900;font-size:16px;color:var(--ink);margin-bottom:6px;} .cards .c p{font-size:13px;color:var(--ink-mid);line-height:1.55;}
+  .cards .c .mark{font-size:11px;font-weight:700;color:var(--brand-deep);margin-top:7px;}
+  .ba{display:flex;align-items:stretch;gap:14px;}
+  .ba .panel{flex:1;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:18px;}
+  .ba .panel.after{border-color:var(--brand);border-width:2px;background:var(--paper);}
+  .ba .panel .tag{font-family:var(--head);font-weight:900;font-size:12px;border-radius:999px;padding:3px 11px;display:inline-block;margin-bottom:9px;}
+  .ba .panel.before .tag{background:var(--line);color:var(--ink-mid);} .ba .panel.after .tag{background:var(--brand);color:#fff;}
+  .ba .panel ul{list-style:none;} .ba .panel li{font-size:14px;color:var(--ink);padding:5px 0 5px 20px;position:relative;}
+  .ba .panel.before li::before{content:'×';position:absolute;left:0;color:var(--ink-sub);font-weight:900;}
+  .ba .panel.after li::before{content:'○';position:absolute;left:0;color:var(--brand);font-weight:900;}
+  .ba .mid{display:flex;align-items:center;color:var(--accent);font-size:26px;font-weight:900;}
+  table.cmp{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+  table.cmp th,table.cmp td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);}
+  table.cmp thead th{background:var(--ink);color:#fff;font-family:var(--head);font-weight:700;}
+  table.cmp thead th:first-child{background:var(--brand-deep);}
+  table.cmp tbody tr:last-child td{border-bottom:none;} table.cmp td:first-child{font-weight:700;}
+  table.cmp .yes{color:var(--brand-deep);font-weight:900;} table.cmp .no{color:var(--ink-sub);}
+  .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .feat .f{background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px;text-align:center;}
+  .feat .f .ic{width:34px;height:34px;border-radius:9px;background:var(--brand-soft);color:var(--brand-deep);font-family:var(--head);font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;}
+  .feat .f b{font-size:13px;color:var(--ink);display:block;} .feat .f span{font-size:11px;color:var(--ink-mid);}
+  .map{list-style:none;} .map li{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--ink);padding:11px 14px;margin-bottom:9px;background:var(--bg);border:1.5px solid var(--line);border-left:4px solid var(--brand);border-radius:11px;}
+  .map li .q{flex:1;} .map li .ar{color:var(--accent);font-weight:900;} .map li .a{flex:1.3;color:var(--brand-deep);font-weight:700;}
+  .steps{list-style:none;} .steps li{font-size:15px;font-weight:600;color:var(--ink);padding:11px 14px 11px 50px;position:relative;margin-bottom:9px;background:var(--bg);border:1.5px solid var(--line);border-left:4px solid var(--brand);border-radius:11px;}
+  .steps li .n{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:27px;height:27px;background:var(--accent);color:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:900;font-size:13px;box-shadow:0 2px 0 var(--accent-deep);}
+  .prompt{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--ink);color:#ECECEA;border-radius:10px;padding:14px 16px;line-height:1.65;margin-top:10px;}
+  .prompt .c{color:var(--accent);} .prompt .cm{color:#9FB4CC;} .prompt .y{color:#F2C879;}
+  .cycle{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;}
+  .cycle .node{width:120px;height:120px;border-radius:50%;background:var(--brand-soft);border:2px solid var(--brand);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px;}
+  .cycle .node b{font-family:var(--head);font-size:14px;color:var(--brand-deep);} .cycle .node span{font-size:10.5px;color:var(--ink-mid);}
+  .cycle .ar{color:var(--accent);font-size:22px;font-weight:900;}
+  .faq .qa{background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px 16px;margin-bottom:9px;}
+  .faq .qa .q{font-family:var(--head);font-weight:900;font-size:15px;color:var(--brand-deep);} .faq .qa .q::before{content:'Q. ';color:var(--accent-deep);}
+  .faq .qa .a{font-size:14px;color:var(--ink-mid);margin-top:4px;} .faq .qa .a::before{content:'A. ';color:var(--ink);font-weight:700;}
+  footer{background:var(--ink);color:#EBEBE7;padding:36px 52px;}
+  footer .frow{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;}
+  footer .lg{display:flex;align-items:center;gap:11px;}
+  footer .lg b{font-family:var(--head);font-weight:900;color:#fff;font-size:15px;} footer .lg b small{display:block;font-size:11px;color:#9C9C96;font-weight:500;}
+  footer .cta{background:var(--accent);color:var(--ink);border-radius:999px;padding:11px 24px;font-family:var(--head);font-weight:900;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
+  footer .src{font-size:12px;color:#9C9C96;margin-top:16px;line-height:1.8;} footer .src a{color:var(--accent);text-decoration:none;}
+  .secsub{font-family:var(--head);font-weight:900;font-size:15px;color:var(--ink);margin:18px 0 10px;}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="kawaru-logo" viewBox="0 0 406 93">
+    <rect x="6.67572e-06" y="13.4815" width="7.93029" height="74.5447" fill="currentColor"/>
+    <path d="M18.2397 52.7235L24.2772 47.5817L57.8911 88.0582L48.3318 88.0582L18.2397 52.7235Z" fill="#5BBCD4"/>
+    <path d="M34.8933 49.5514L40.9308 44.4096L77.2278 88.0366L67.4075 88.0262L34.8933 49.5514Z" fill="#5BBCD4"/>
+    <rect x="57.1908" y="2.92276" width="7.93029" height="83.5485" transform="rotate(42.3764 57.1908 2.92276)" fill="currentColor"/>
+    <rect x="59.4772" width="7.93029" height="22.2048" fill="currentColor"/>
+    <rect x="44.4096" y="7.9303" width="7.93029" height="22.9978" transform="rotate(-90 44.4096 7.9303)" fill="currentColor"/>
+    <path d="M110.882 61.3999L110.204 47.3281L135.413 20.7649H148.958L126.233 45.2211L119.46 52.4451L110.882 61.3999ZM99.9703 73.4399V20.7649H112.086V73.4399H99.9703ZM136.015 73.4399L117.278 50.4886L125.254 41.8349L150.237 73.4399H136.015ZM181.053 73.4399V65.5386L180.301 63.8079V49.6609C180.301 47.1525 179.523 45.196 177.968 43.7914C176.463 42.3867 174.13 41.6844 170.97 41.6844C168.813 41.6844 166.681 42.0355 164.574 42.7379C162.517 43.39 160.761 44.293 159.306 45.4469L155.092 37.2446C157.299 35.6895 159.958 34.4855 163.069 33.6326C166.179 32.7798 169.339 32.3534 172.55 32.3534C178.721 32.3534 183.512 33.8082 186.923 36.7179C190.334 39.6275 192.04 44.1676 192.04 50.3381V73.4399H181.053ZM168.712 74.0419C165.552 74.0419 162.843 73.5151 160.585 72.4616C158.328 71.358 156.597 69.878 155.393 68.0219C154.189 66.1657 153.587 64.0838 153.587 61.7761C153.587 59.3681 154.164 57.2611 155.318 55.4551C156.522 53.6491 158.403 52.2445 160.962 51.2411C163.52 50.1876 166.856 49.6609 170.97 49.6609H181.731V56.5086H172.249C169.49 56.5086 167.584 56.9601 166.53 57.8631C165.527 58.7661 165.025 59.8949 165.025 61.2494C165.025 62.7544 165.602 63.9584 166.756 64.8614C167.96 65.7142 169.59 66.1406 171.647 66.1406C173.604 66.1406 175.359 65.6891 176.915 64.7861C178.47 63.833 179.599 62.4534 180.301 60.6474L182.107 66.0654C181.254 68.674 179.699 70.6556 177.441 72.0101C175.184 73.3646 172.274 74.0419 168.712 74.0419ZM213.443 73.4399L198.844 32.9554H209.906L222.021 67.7961H216.754L229.396 32.9554H239.329L251.594 67.7961H246.327L258.818 32.9554H269.203L254.529 73.4399H243.166L232.406 43.5656H235.867L224.73 73.4399H213.443ZM300.427 73.4399V65.5386L299.675 63.8079V49.6609C299.675 47.1525 298.897 45.196 297.342 43.7914C295.837 42.3867 293.504 41.6844 290.344 41.6844C288.187 41.6844 286.055 42.0355 283.948 42.7379C281.891 43.39 280.135 44.293 278.68 45.4469L274.466 37.2446C276.674 35.6895 279.332 34.4855 282.443 33.6326C285.553 32.7798 288.714 32.3534 291.924 32.3534C298.095 32.3534 302.886 33.8082 306.297 36.7179C309.708 39.6275 311.414 44.1676 311.414 50.3381V73.4399H300.427ZM288.086 74.0419C284.926 74.0419 282.217 73.5151 279.959 72.4616C277.702 71.358 275.971 69.878 274.767 68.0219C273.563 66.1657 272.961 64.0838 272.961 61.7761C272.961 59.3681 273.538 57.2611 274.692 55.4551C275.896 53.6491 277.777 52.2445 280.336 51.2411C282.894 50.1876 286.23 49.6609 290.344 49.6609H301.105V56.5086H291.623C288.864 56.5086 286.958 56.9601 285.904 57.8631C284.901 58.7661 284.399 59.8949 284.399 61.2494C284.399 62.7544 284.976 63.9584 286.13 64.8614C287.334 65.7142 288.964 66.1406 291.021 66.1406C292.978 66.1406 294.734 65.6891 296.289 64.7861C297.844 63.833 298.973 62.4534 299.675 60.6474L301.481 66.0654C300.628 68.674 299.073 70.6556 296.815 72.0101C294.558 73.3646 291.648 74.0419 288.086 74.0419ZM324.296 73.4399V32.9554H335.508V44.3934L333.928 41.0824C335.132 38.2229 337.063 36.0657 339.722 34.6109C342.381 33.1059 345.617 32.3534 349.429 32.3534V43.1894C348.928 43.1392 348.476 43.1141 348.075 43.1141C347.674 43.064 347.247 43.0389 346.796 43.0389C343.585 43.0389 340.976 43.967 338.97 45.8231C337.013 47.6291 336.035 50.4635 336.035 54.3264V73.4399H324.296ZM376.043 74.0419C372.681 74.0419 369.671 73.3897 367.013 72.0854C364.404 70.781 362.372 68.7995 360.917 66.1406C359.462 63.4316 358.735 59.9952 358.735 55.8314V32.9554H370.474V54.1006C370.474 57.4618 371.176 59.945 372.581 61.5504C374.036 63.1055 376.068 63.8831 378.676 63.8831C380.482 63.8831 382.088 63.5069 383.492 62.7544C384.897 61.9517 386.001 60.7477 386.803 59.1424C387.606 57.4869 388.007 55.43 388.007 52.9719V32.9554H399.746V73.4399H388.609V62.3029L390.641 65.5386C389.287 68.348 387.28 70.48 384.621 71.9349C382.012 73.3395 379.153 74.0419 376.043 74.0419Z" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<div class="doc">
+
+  <div class="hero">
+    <span class="coin"></span>
+    <div class="chan"><svg width="132" height="30" style="color:var(--brand)"><use href="#kawaru-logo"/></svg></div>
+    <div class="eyebrow">ONE-PAGE GUIDE</div>
+    <h1>Codex × <span class="hl">ループエンジニアリング</span> で<br>「スライド作成」を半自動化する</h1>
+    <p class="sub">AIにゴールだけ渡して、生成 → 検証 → 改善 を自分で回させる。作るほど速くなるスライド量産のやり方を、この1ページに。</p>
+    <div class="meta"><span class="k">2026年版</span><span>初心者向け</span><span>所要10分</span><span>テンプレ／Skill化／50選つき</span><span>出典つき</span></div>
+  </div>
+
+  <div class="tocbar">
+    <a href="#s1">① ループとは</a><a href="#s2">② なぜスライド最適</a><a href="#s3">③ 3本柱</a><a href="#s4">④ 比較</a>
+    <a href="#s5">⑤ ファイル構造</a><a href="#s6">⑥ 使い方</a><a href="#s7">⑦ テンプレ集</a><a href="#s8">⑧ FAQ・もう一歩</a>
+  </div>
+
+  <!-- TL;DR -->
+  <section>
+    <div class="sec-h"><div class="no">!</div><h2>まず3行で</h2></div>
+    <div class="tldr">
+      <div class="t"><div class="k">POINT 1</div><p>ループ＝AIにゴールだけ渡し「生成→検証→改善」を自分で回させる作り方</p></div>
+      <div class="t"><div class="k">POINT 2</div><p>スライドは“出力で正解が確かめられる”からループ化に最適</p></div>
+      <div class="t"><div class="k">POINT 3</div><p>Codexにループを組めば人は監督に専念。作るほど速くなる</p></div>
+    </div>
+    <div class="secsub">スライド作成、こんなに大変</div>
+    <ul class="bullets"><li>構成・デザインに毎回何時間もかかる</li><li>1枚が文字だらけで伝わらない</li><li>AIに丸投げするとバラバラ・崩れる・はみ出す</li></ul>
+  </section>
+
+  <!-- 1 ループとは + 全体像 -->
+  <section id="s1">
+    <div class="sec-h"><div class="no">1</div><h2>ループエンジニアリングとは</h2></div>
+    <p class="body">ひとことで言うと <span class="hl">「新人にゴールと合格ラインだけ伝えて、自分で直しながら仕上げてもらう」</span> をAIにやらせること。ふつうは「1回頼んで自分で直す」の繰り返しですが、ループは “やり直しの判断” までAIに渡します。</p>
+    <div class="secsub">ループの「1周」</div>
+    <div class="flow">
+      <div class="step"><div class="t">① 作る</div><div class="d">1スライド生成</div></div><div class="arrow">→</div>
+      <div class="step"><div class="t">② チェック</div><div class="d">はみ出し・重複</div></div><div class="arrow">→</div>
+      <div class="step"><div class="t">③ 直す</div><div class="d">ダメな所を改善</div></div><div class="arrow">↻</div>
+      <div class="step"><div class="t">④ 合格判定</div><div class="d">条件を満たすまで</div></div>
+    </div>
+    <p class="note" style="margin-top:10px;">※ 肝は <span class="hl-a">「作る役」と「採点する役」を分ける</span>こと。自分で採点すると甘くなる。🔶「ループエンジニアリング」は2026年に広まった呼び名で公式用語ではない</p>
+  </section>
+
+  <!-- 2 なぜスライド最適 + Phase -->
+  <section id="s2">
+    <div class="sec-h"><div class="no">2</div><h2>なぜ“スライド”がループ最適か</h2></div>
+    <p class="body">ループが効くのは「ゴールを <span class="hl">出力で○×が付けられる</span>」タスク。スライドはまさにそれ。</p>
+    <ul class="checks">
+      <li>文字が <span class="hl">はみ出していない</span> か → ブラウザで高さを測れる</li>
+      <li>言いたいことが <span class="hl">1つだけ</span> か → 見出し数で測れる</li>
+      <li><span class="hl">枚数・通し番号</span> が合っているか → 数えれば分かる</li>
+      <li><span class="hl">死にスライド</span>（重複・不要）が無いか → 検出できる</li>
+    </ul>
+    <div class="secsub">流れは Phase 0〜4 に分ける</div>
+    <table class="cmp">
+      <thead><tr><th>Phase</th><th>やること</th><th>主役</th></tr></thead>
+      <tbody>
+        <tr><td>0 準備</td><td>コアメッセージを1行で決める</td><td>人（監督）</td></tr>
+        <tr><td>1 骨子</td><td>構成（見出しだけ）を作る</td><td>Codex＋人</td></tr>
+        <tr><td>2 生成</td><td>1スライドずつ本文（1メッセージ）</td><td>Codex</td></tr>
+        <tr><td>3 改善</td><td>批評→改善を3〜5周・死にスライド排除</td><td class="yes">Codex（ループ）</td></tr>
+        <tr><td>4 検証</td><td>はみ出し・枚数・体裁を自動チェック</td><td class="yes">Codex（評価役）</td></tr>
+      </tbody>
+    </table>
+    <p class="note">🔶 Phase分けはX発信の手法を整理したもの。「いきなり全部作らせない」のが肝</p>
+  </section>
+
+  <!-- 3 3本柱 + before/after -->
+  <section id="s3">
+    <div class="sec-h"><div class="no">3</div><h2>受け取れる3本柱</h2></div>
+    <div class="cards">
+      <div class="c"><div class="pin">1</div><h3>ファイル構造</h3><p>AIに渡す土台。どこに何を書くかの役割分担。</p><p class="mark">✅ 実証済みの形</p></div>
+      <div class="c accent"><div class="pin">2</div><h3>md→Skill化</h3><p>うまくいった手順を/コマンド一発の型にして配る。</p><p class="mark">🔶 Claude/Codex共通</p></div>
+      <div class="c"><div class="pin">3</div><h3>テンプレ集</h3><p>DESIGN.md 50選＋外部公開テンプレ集リンク。</p><p class="mark">✅ 実在リンク</p></div>
+    </div>
+    <div class="secsub">手作業 → ループ</div>
+    <div class="ba">
+      <div class="panel before"><span class="tag">手作業</span><ul><li>毎回こちらが指示し直す</li><li>はみ出し・崩れを全部目視</li><li>本数が増えると回らない</li></ul></div>
+      <div class="mid">→</div>
+      <div class="panel after"><span class="tag">ループ</span><ul><li>ゴールと合格条件だけ渡す</li><li>はみ出しは自動で検出・修正</li><li>Skillで型化して量産・配布</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 4 比較 -->
+  <section id="s4">
+    <div class="sec-h"><div class="no">4</div><h2>3つのやり方を比べる</h2></div>
+    <table class="cmp"><thead><tr><th>観点</th><th>1枚ずつ手作り</th><th>AIに丸投げ1発</th><th>Codex×ループ</th></tr></thead>
+      <tbody>
+        <tr><td>速さ</td><td class="no">遅い</td><td>速いが当たり外れ</td><td class="yes">速い＋安定</td></tr>
+        <tr><td>体裁チェック</td><td>自分で全部</td><td class="no">崩れに気づかない</td><td class="yes">自動で検出・修正</td></tr>
+        <tr><td>作り直し判断</td><td>自分</td><td>自分（毎回指示）</td><td class="yes">AIが自分で回す</td></tr>
+        <tr><td>量産・再現性</td><td class="no">低い</td><td>中</td><td class="yes">高い（Skill化）</td></tr>
+      </tbody></table>
+    <p class="note">※ 1〜2枚の単発なら手作り／丸投げで十分。ループは「量産・横展開・チーム統一」で効く</p>
+  </section>
+
+  <!-- 5 柱① ファイル構造 -->
+  <section id="s5">
+    <div class="sec-h"><div class="no">5</div><h2>柱① ファイル構造テンプレート</h2></div>
+    <p class="body">「いい感じに作って」と丸投げすると毎回バラバラになるのは、AIが“どこに何を書くか”を知らないから。先に役割分担を渡します。</p>
+    <div class="prompt">
+<span class="cm"># フォルダ1つに、この6ファイルを置くだけ</span><br>
+slide-project/<br>
+├─ <span class="c">AGENTS.md</span>   <span class="cm"># AIへの社内ルール（禁止事項・守る型）</span><br>
+├─ <span class="c">DESIGN.md</span>   <span class="cm"># 配色・フォント・型の正典</span><br>
+├─ <span class="c">outline.md</span>  <span class="cm"># 構成（章立て・見出し）</span><br>
+├─ <span class="c">script.json</span> <span class="cm"># 1枚ずつの中身（文章と見た目を分ける）</span><br>
+├─ <span class="c">slides.html</span> <span class="cm"># 完成スライド本体（単一HTML）</span><br>
+└─ <span class="c">check.mjs</span>   <span class="cm"># はみ出し検出＝評価役</span>
+    </div>
+    <div class="secsub">各ファイルの役割</div>
+    <table class="cmp">
+      <thead><tr><th>ファイル</th><th>役割（ひとことで）</th></tr></thead>
+      <tbody>
+        <tr><td>AGENTS.md</td><td>AIが毎回守る社内ルール（禁止ワード・1スライド1メッセージ等）</td></tr>
+        <tr><td>DESIGN.md</td><td>色・フォント・型の正典。柱③「50選」とつながる</td></tr>
+        <tr><td>outline.md</td><td>先に骨組みだけ作る場所。後半が崩れない</td></tr>
+        <tr><td>script.json</td><td><span class="yes">文章と見た目を分ける</span>。中身だけ直せる</td></tr>
+        <tr><td>check.mjs</td><td><span class="yes">ループの心臓</span>。はみ出しを自動で見つける</td></tr>
+      </tbody></table>
+  </section>
+
+  <!-- 6 使い方 + 柱② -->
+  <section id="s6">
+    <div class="sec-h"><div class="no">6</div><h2>使い方（初心者基準）</h2></div>
+    <div class="secsub">こんな悩み → こう頼むだけ</div>
+    <ul class="map">
+      <li><span class="q">「構成からがしんどい」</span><span class="ar">→</span><span class="a">「章立て（見出しだけ）を10枚分作って」</span></li>
+      <li><span class="q">「1枚が文字だらけ」</span><span class="ar">→</span><span class="a">「言いたいこと1つに削って」</span></li>
+      <li><span class="q">「はみ出す・崩れる」</span><span class="ar">→</span><span class="a">「はみ出しを自動チェックして直して」</span></li>
+      <li><span class="q">「毎回同じ説明が面倒」</span><span class="ar">→</span><span class="a">「今の手順を SKILL.md にまとめて」</span></li>
+    </ul>
+    <div class="secsub">ループを“組む”プロンプト</div>
+    <div class="prompt">
+<span class="cm"># Phase 1 骨子</span> 「◯◯の章立てを作って。各スライド見出し1行＋一言メモだけ」<br>
+<span class="cm"># Phase 3 改善</span> 「self-reviewして死にスライドを統合/削除。合格まで批評→改善を最大5周」<br>
+<span class="cm"># Phase 4 検証</span> 「check.mjsを実行し、はみ出しを<span class="c">0になるまで</span>直して」
+    </div>
+    <div class="secsub">柱② md → Skill にして配る</div>
+    <div class="flow">
+      <div class="step"><div class="t">① 手順メモ</div><div class="d">作り方をmdに</div></div><div class="arrow">→</div>
+      <div class="step"><div class="t">② Skill化</div><div class="d">SKILL.mdに</div></div><div class="arrow">→</div>
+      <div class="step"><div class="t">③ 置く</div><div class="d">フォルダ/GitHub</div></div><div class="arrow">→</div>
+      <div class="step"><div class="t">④ 配る</div><div class="d">/コマンド一発</div></div>
+    </div>
+    <div class="prompt" style="margin-top:12px;">
+<span class="cm">---</span><br>
+<span class="y">name</span>: make-slides<br>
+<span class="y">description</span>: 構成→1枚ずつ→批評改善→自動検証ではみ出し0のスライドを作る。「スライド作って」で使う<br>
+<span class="cm">---</span><br>
+<span class="cm">## 手順</span> 1.章立て 2.本文(中身/見た目を分ける) 3.生成 4.はみ出し検出→直す(3〜5周) 5.枚数整合
+    </div>
+    <p class="note" style="margin-top:8px;"><b>ポイント</b>：description（いつ使うか）を具体的に。曖昧だとAIが「今使うべきか」を判断できない</p>
+  </section>
+
+  <!-- 7 柱③ テンプレ集 + サイクル -->
+  <section id="s7">
+    <div class="sec-h"><div class="no">7</div><h2>柱③ テンプレ集（50選＋外部）</h2></div>
+    <p class="body"><b>(A) DESIGN.md「50選」</b>：最初から50個そろえなくてOK。1本作るたびに“勝ちパターン”を1行ずつ貯める <span class="hl">育てる資産</span>。</p>
+    <ul class="checks">
+      <li><b>配色</b>：ネイビー×ブルー／コーラル×クリーム／エメラルド×ゴールド…</li>
+      <li><b>型</b>：表紙／結論3行／3本柱カード／比較表／before-after／フロー／FAQ…</li>
+      <li><b>守るルール</b>：濃い差し色は文字に使わない／表見出しは濃地に白字／1スライド1メッセージ</li>
+    </ul>
+    <div class="secsub">(B) 外部の公開テンプレ集（参考）</div>
+    <div class="feat">
+      <div class="f"><div class="ic">L</div><b>slide lib / c-slide</b><span>BtoB資料ポータル（Cone）</span></div>
+      <div class="f"><div class="ic">C</div><b>SlidesCarnival</b><span>無料テーマ大規模</span></div>
+      <div class="f"><div class="ic">G</div><b>Slidesgo</b><span>業務〜教育</span></div>
+      <div class="f"><div class="ic">A</div><b>Slidesacademy</b><span>無料テーマ集</span></div>
+    </div>
+    <p class="note" style="margin-top:8px;">✅ いずれも実在。AIに「この雰囲気・構成で」と渡す参考に。⚠️ 利用前にライセンス（商用可否・クレジット・再配布）を必ず確認</p>
+    <div class="secsub">型を貯めて“資産”にする</div>
+    <div class="cycle">
+      <div class="node"><b>① 作る</b><span>ループで1本</span></div><span class="ar">→</span>
+      <div class="node"><b>② 型化</b><span>DESIGN/SKILLに追記</span></div><span class="ar">→</span>
+      <div class="node"><b>③ 配る</b><span>公開・横展開</span></div><span class="ar">↻</span>
+      <div class="node"><b>④ 速くなる</b><span>次回はもっと楽</span></div>
+    </div>
+  </section>
+
+  <!-- 8 FAQ + もう一歩 -->
+  <section id="s8">
+    <div class="sec-h"><div class="no">8</div><h2>FAQ・もう一歩</h2></div>
+    <div class="faq">
+      <div class="qa"><div class="q">プログラミングができなくても使える？</div><div class="a">章立て・本文・体裁チェックは日本語で頼むだけ。まず「章立て」「1枚1メッセージに削る」「はみ出し直す」の3つでOK。</div></div>
+      <div class="qa"><div class="q">ループって止まらないのでは？</div><div class="a">「はみ出し0・全◯枚」など合格条件を満たしたら止まると決めておく。条件を“確かめられる形”にするのがコツ。</div></div>
+      <div class="qa"><div class="q">本当に時短になる？</div><div class="a">1〜2枚なら変わらない。効くのは量産・横展開・チーム統一のとき。効果は使い方しだい（断定しない）。</div></div>
+    </div>
+    <div class="secsub">もう一歩進んだ使い方</div>
+    <ul class="checks">
+      <li><b>AGENTS.md</b>で社内ルールを効かせる（禁止ワード・口調・数値は出典必須）</li>
+      <li><b>サブエージェント</b>（.codex/agents/）で「構成／文章／検証」担当を分ける</li>
+      <li>ビジュアルはデザイン特化ツール、構造はCodex、と<b>担当を分ける</b>（🔶@uchita_success）</li>
+    </ul>
+    <p class="note" style="margin-top:8px;">🔶 Codexの細かい仕様（既定値・配置）は時点で変わる。最新は公式ドキュメントで確認。⚠️ 数値（◯時間→◯分等）は実績に差し替え・出典の取れない数字は書かない</p>
+  </section>
+
+  <footer>
+    <div class="frow">
+      <div class="lg"><svg width="132" height="30" style="color:#fff"><use href="#kawaru-logo"/></svg></div>
+      <a class="cta" href="https://github.com/fuuuuuuma/codex-loop-slide-builder-ja">3点セットを受け取る ▸</a>
+    </div>
+    <p class="src">出典：Addy Osmani『Loop Engineering』(addyosmani.com) ／ OpenAI Codex Docs ／ slide lib <a href="https://cone-c-slide.com/lib/">cone-c-slide.com/lib</a> ／ X <a href="https://x.com/uchita_success">x.com/uchita_success</a> ／ 制作ログ（全140枚）<br>
+      ※ 本資料は非公式まとめ。最新の仕様は各公式で確認を。スライドは slides.html、全文は README（GitHub公開）。</p>
+  </footer>
+</div>
+</body>
+</html>
