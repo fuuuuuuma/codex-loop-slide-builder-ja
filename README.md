@@ -2,6 +2,7 @@
 
 > 📊 スライド（プレゼン）: [`./slides.html`](./slides.html) ｜ 📄 1枚資料（縦スクロール）: [`./onepager.html`](./onepager.html)
 > 🎁 受け取った人が“そのまま渡せば動く”実ファイル一式: [`./kit/`](./kit/)（make-slides スキル ＋ DESIGN.md 50選）
+> 🔁 Claude Code版（ClaudeCodeチャンネル）: https://github.com/fuuuuuuma/claude-code-loop-slide-builder-ja
 > AIエージェントチャンネル（Kawaru）撮影用リサーチノート / 2026年版 / 初心者基準
 
 ---
